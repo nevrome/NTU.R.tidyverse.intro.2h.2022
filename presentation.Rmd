@@ -139,23 +139,25 @@ ggplot(peng) +
   geom_boxplot(aes(x = species, y = body_mass_g))
 ```
 
+```{r}
+peng_out <- peng
+peng_out$body_mass_g[sample(1:nrow(peng_out), 10)] <- 15000 + 50000 * runif(10)
+ggplot(peng_out) +
+  geom_boxplot(aes(x = species, y = body_mass_g))
+```
+
 - This is not well readable, because one extreme outlier dictate the scale
 - A 15kg penguin is a scary thought and we would probably remove this outlier, but let's assume that's a valid observation we want to include in the plot
 
 - To mitigate this issue we can change the **scale** of different visual elements - e.g. the y-axis
 
 ```{r}
-ggplot(peng) +
+ggplot(peng_out) +
   geom_boxplot(aes(x = species, y = body_mass_g)) +
   scale_y_log10()
 ```
 
 - The log-scale improves readability
-- But now let's fix this obvious mistake in our dataset
-
-```{r}
-peng$body_mass_g[4] <- NA
-```
 
 ## Other `scale`s
 
@@ -652,26 +654,11 @@ Joins combine two datasets x and y based on key columns
 
 ## A second dataset
 
-```{r echo=FALSE}
-library_table_path <- "/vol/volume/3b-1-introduction-to-r-and-the-tidyverse/ancientmetagenome-hostassociated_libraries.tsv"
-library_table_url <- "https://raw.githubusercontent.com/SPAAM-community/AncientMetagenomeDir/b187df6ebd23dfeb42935fd5020cb615ead3f164/ancientmetagenome-hostassociated/libraries/ancientmetagenome-hostassociated_libraries.tsv"
-```
-
-```{r, results='markup'}
-libraries <- readr::read_tsv(library_table_url)
-print(libraries, n = 3)
-```
-
-## Meaningful subsets
+- Contains additional variables for a subset of penguins - even some not in the main dataset
 
 ```{r echo=FALSE}
-samsub <- samples %>% dplyr::select(project_name, sample_name, sample_age)
-libsub <- libraries %>% dplyr::select(project_name, sample_name, library_name, read_count)
-```
-
-```{r, results='markup'}
-print(samsub, n = 3)
-print(libsub, n = 3)
+bills <- readr::read_csv("data/penguin_bills_2009.csv")
+print(bills, n = 5)
 ```
 
 ## Left join
@@ -682,9 +669,9 @@ Take observations from x and add fitting information from y
 
 ```{r}
 left <- dplyr::left_join(
-  x = samsub,                           # 1060 observations
-  y = libsub,                           # 1657 observations
-  by = c("project_name", "sample_name") # the key columns by which to join
+  x = peng,    # 1060 observations
+  y = bills,  # 1657 observations
+  by = c("id") # the key columns by which to join
 )
 ```
 

@@ -1,3 +1,1 @@
-This data was taken from the palmerpenguins R package: https://allisonhorst.github.io/palmerpenguins
-
-For didactic purposes, one penguins weight was changed from unknown to 150kg. Scary...
+This data was taken as a random subset of the palmerpenguins R package: https://allisonhorst.github.io/palmerpenguins

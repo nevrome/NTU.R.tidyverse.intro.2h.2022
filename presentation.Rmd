@@ -45,7 +45,7 @@ date: "2022/11/18"
 - It provides functions to read data in almost any (text) format:
 
 ```{r eval=FALSE}
-readr::read_csv()   # .csv files
+readr::read_csv()   # .csv files -> see data/penguins.csv
 readr::read_tsv()   # .tsv files
 readr::read_delim() # tabular files with an arbitrary separator
 readr::read_fwf()   # fixed width files
@@ -78,46 +78,24 @@ read_csv(
 
 ## What does `readr` produce? The `tibble`!
 
-```{r echo = FALSE}
-sample_table_path <- "/vol/volume/3b-1-introduction-to-r-and-the-tidyverse/ancientmetagenome-hostassociated_samples.tsv"
-sample_table_url <- "https://raw.githubusercontent.com/SPAAM-community/AncientMetagenomeDir/b187df6ebd23dfeb42935fd5020cb615ead3f164/ancientmetagenome-hostassociated/samples/ancientmetagenome-hostassociated_samples.tsv"
-```
-
 ```{r}
-samples <- readr::read_tsv(sample_table_url)
+peng <- readr::read_csv("data/penguins.csv")
 ```
 
 - The `tibble` is a "data frame", a tabular data structure with rows and columns
 - Unlike a simple array, each column can have another data type
 
 ```{r results='markup'}
-print(samples, n = 3)
+print(peng, n = 3)
 ```
 
 ## How to look at a `tibble`?
 
 ```{r, eval=FALSE}
-samples          # Typing the name of an object will print it to the console
-str(samples)     # A structural overview of an object
-summary(samples) # A human-readable summary of an object
-View(samples)    # RStudio's interactive data browser
-```
-
-- R provides a very flexible indexing operation for `data.frame`s and `tibble`s
-
-```{r, eval=FALSE}
-samples[1,1]                         # Access the first row and column
-samples[1,]                          # Access the first row
-samples[,1]                          # Access the first column
-samples[c(1,2,3),c(2,3,4)]           # Access values from rows and columns
-samples[,-c(1,2)]                    # Remove the first two columns
-samples[,c("site_name", "material")] # Columns can be selected by name
-```
-
-- `tibble`s are mutable data structures, so their content can be overwritten
-
-```{r, eval=FALSE}
-samples[1,1] <- "Cheesecake2015"     # replace the first value in the first column 
+peng          # Typing the name of an object will print it to the console
+str(peng)     # A structural overview of an object
+summary(peng) # A human-readable summary of an object
+View(peng)    # RStudio's interactive data browser
 ```
 
 # Plotting data in `tibble`s
@@ -133,66 +111,61 @@ library(ggplot2) # Loading a library to use its functions without ::
 
 ```{r eval=FALSE}
 ggplot(          # Every plot starts with a call to the ggplot() function
-  data = samples # This function can also take the input tibble
+  data = peng    # This function can also take the input tibble
 ) +              # The plot consists of functions linked with +
-geom_bar(        # "geoms" define the plot layers we want to draw
-  mapping = aes( # The aes() function maps variables to visual properties
-    x = publication_year, # publication_year -> x-axis
-    fill = community_type # community_type -> fill color
+  geom_bar(        # "geoms" define the plot layers we want to draw
+    mapping = aes( # The aes() function maps variables to visual properties
+      x = island,    # publication_year -> x-axis
+      fill = species # community_type -> fill color
+    )
   )
-)
 ```
 
 - `geom_*`: data + geometry (bars) + statistical transformation (sum)
 
-## `ggplot2` and the "grammar of graphics"
-
-- This is the plot described above: number of samples per community type through time
-
-```{r}
-ggplot(samples) +
-geom_bar(aes(x = publication_year, fill = community_type))
-```
-
 ## `ggplot2` features many geoms
+
+- RStudio shares helpful cheatsheets for the tidyverse and beyond: https://www.rstudio.com/resources/cheatsheets
 
 \centering
 ![](figures/geom_cheatsheet.png){width=55%}
-
-- RStudio shares helpful cheatsheets for the tidyverse and beyond: https://www.rstudio.com/resources/cheatsheets
 
 ## `scale`s control the behaviour of visual elements
 
 - Another plot: Boxplots of sample age through time
 
 ```{r}
-ggplot(samples) +
-geom_boxplot(aes(x = as.factor(publication_year), y = sample_age))
+ggplot(peng) +
+  geom_boxplot(aes(x = species, y = body_mass_g))
 ```
 
-- This is not well readable, because extreme outliers dictate the scale
+- This is not well readable, because one extreme outlier dictate the scale
+- A 15kg penguin is a scary thought and we would probably remove this outlier, but let's assume that's a valid observation we want to include in the plot
 
-## `scale`s control the behaviour of visual elements
-
-- We can change the **scale** of different visual elements - e.g. the y-axis
+- To mitigate this issue we can change the **scale** of different visual elements - e.g. the y-axis
 
 ```{r}
-ggplot(samples) +
-geom_boxplot(aes(x = as.factor(publication_year), y = sample_age)) +
-scale_y_log10()
+ggplot(peng) +
+  geom_boxplot(aes(x = species, y = body_mass_g)) +
+  scale_y_log10()
 ```
 
 - The log-scale improves readability
+- But now let's fix this obvious mistake in our dataset
 
-## `scale`s control the behaviour of visual elements
+```{r}
+peng$body_mass_g[4] <- NA
+```
+
+## Other `scale`s
 
 - (Fill) color is a visual element of the plot and its scaling can be adjusted
 
 ```{r}
-ggplot(samples) +
-geom_boxplot(aes(x = as.factor(publication_year), y = sample_age,
-                 fill = as.factor(publication_year))) +
-scale_y_log10() + scale_fill_viridis_d(option = "C")
+ggplot(peng) +
+  geom_boxplot(aes(x = species, y = body_mass_g, fill = species)) +
+  scale_y_log10() +
+  scale_fill_viridis_d(option = "C")
 ```
 
 ## Defining plot matrices via `facet`s
@@ -200,9 +173,9 @@ scale_y_log10() + scale_fill_viridis_d(option = "C")
 - Splitting up the plot by categories into **facets** is another way to visualize more variables at once
 
 ```{r}
-ggplot(samples) +
-geom_count(aes(x = as.factor(publication_year), y = material)) +
-facet_wrap(~archive)
+ggplot(peng) +
+  geom_boxplot(aes(x = species, y = body_mass_g)) +
+  facet_wrap(~year)
 ```
 
 - Unfortunately the x-axis became unreadable
@@ -212,10 +185,10 @@ facet_wrap(~archive)
 - Aesthetic changes like this can be applied as part of the `theme`
 
 ```{r}
-ggplot(samples) +
-geom_count(aes(x = as.factor(publication_year), y = material)) +
-facet_wrap(~archive) +
-theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+ggplot(peng) +
+  geom_boxplot(aes(x = species, y = body_mass_g)) +
+  facet_wrap(~year) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
 ## Exercise 1

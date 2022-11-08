@@ -233,7 +233,7 @@ ggplot(peng) +
 ?mtcars
 ```
 
-2. Visualize the relationship between *Gross horsepower* and *1/4 mile time*
+2. Visualize the relationship between *Gross horsepower (hp)* and *1/4 mile time (qsec)*
 
 ```{r, eval=FALSE}
 ggplot(mtcars) + geom_point(aes(x = hp, y = qsec))
@@ -255,19 +255,19 @@ ggplot(mtcars) + geom_point(aes(x = hp, y = qsec, color = as.factor(cyl)))
 - `dplyr::select` allows to select columns
 
 ```{r}
-dplyr::select(samples, project_name, sample_age)   # reduce to two columns
-dplyr::select(samples, -project_name, -sample_age) # remove two columns 
+dplyr::select(peng, id, flipper_length_mm)   # reduce to two columns
+dplyr::select(peng, -island, -flipper_length_mm) # remove two columns 
 ```
 
 - `dplyr::filter` allows for conditional filtering of rows
 
 ```{r}
-dplyr::filter(samples, publication_year == 2014)  # samples published in 2014
-dplyr::filter(samples, publication_year == 2014 |
-                       publication_year == 2018)  # samples from 2015 OR 2018
-dplyr::filter(samples, publication_year %in% c(2014, 2018)) # match operator: %in%
-dplyr::filter(samples, sample_host == "Homo sapiens" & 
-                       community_type == "oral")  # oral samples from modern humans
+dplyr::filter(peng, year == 2007) # penguins measured in 2007
+dplyr::filter(peng, year == 2007 |
+                    year == 2009) # penguins measured in 2007 OR 2009
+dplyr::filter(peng, year %in% c(2007, 2009)) # match operator: %in%
+dplyr::filter(peng, species == "Adelie" & 
+                    body_mass_g >= 4000) # Adelie penguins heavier than 4kg
 ```
 
 ## Chaining functions together with the pipe `%>%`
@@ -276,26 +276,26 @@ dplyr::filter(samples, sample_host == "Homo sapiens" &
 
 ```{r}
 library(magrittr)
-samples %>% dplyr::filter(publication_year == 2014)
+peng %>% dplyr::filter(year == 2007)
 ```
 
 - It forwards the LHS as the first argument of the function appearing on the RHS
 - That allows for sequences of functions ("tidyverse style")
 
 ```{r}
-samples %>%
-  dplyr::select(sample_host, community_type) %>%
-  dplyr::filter(sample_host == "Homo sapiens" & community_type == "oral") %>%
+peng %>%
+  dplyr::select(id, species, body_mass_g) %>%
+  dplyr::filter(species == "Adelie" & body_mass_g >= 4000) %>%
   nrow() # count the rows
 ```
 
 - `magrittr` also offers some more operators, among which the extraction `%$%` is particularly useful
 
 ```{r}
-samples %>%
-  dplyr::filter(material == "tooth") %$%
-  sample_age %>% # extract the sample_age column as a vector
-  max()          # get the maximum of said vector
+peng %>%
+  dplyr::filter(island == "Biscoe") %$%
+  species %>% # extract the sample_age column as a vector
+  unique()    # get the unique elements of said vector
 ```
 
 ## Summary statistics in `base` R
@@ -303,19 +303,21 @@ samples %>%
 - Summarising and counting data is indispensable and R offers all operations you would expect in its `base` package
 
 ```{r}
-nrow(samples)              # number of rows in a tibble
-length(samples$site_name)  # length/size of a vector
-unique(samples$material)   # unique elements of a vector
+chinstraps <- peng %>% dplyr::filter(species == "Chinstrap")
 
-min(samples$sample_age)    # minimum
-max(samples$sample_age)    # maximum
+nrow(chinstraps)               # number of rows in a tibble
+length(chinstraps$species)     # length/size of a vector
+unique(chinstraps$species)     # unique elements of a vector
 
-mean(samples$sample_age)   # mean
-median(samples$sample_age) # median
+min(chinstraps$body_mass_g)    # minimum
+max(chinstraps$body_mass_g)    # maximum
 
-var(samples$sample_age)    # variance
-sd(samples$sample_age)     # standard deviation
-quantile(samples$sample_age, probs = 0.75) # sample quantiles for the given probs
+mean(chinstraps$body_mass_g)   # mean
+median(chinstraps$body_mass_g) # median
+
+var(chinstraps$body_mass_g)    # variance
+sd(chinstraps$body_mass_g)     # standard deviation
+quantile(chinstraps$body_mass_g, probs = 0.75) # sample quantiles for the given probs
 ```
 
 - many of these functions can ignore missing values with an option `na.rm = TRUE`
@@ -326,22 +328,22 @@ quantile(samples$sample_age, probs = 0.75) # sample quantiles for the given prob
 - `dplyr` allows such summary operations with a combination of `group_by` and `summarise`
 
 ```{r}
-samples %>%
-  dplyr::group_by(material) %>%  # group the tibble by the material column
+peng %>%
+  dplyr::group_by(species) %>% # group the tibble by the material column
   dplyr::summarise(
-    min_age = min(sample_age),   # a new column: min age for each group
-    median_age = median(sample_age), # a new column: median age for each group
-    max_age = max(sample_age)    # a new column: max age for each group
+    min_age = min(body_mass_g, na.rm = T),       # a new column: min weight for each group
+    median_age = median(body_mass_g, na.rm = T), # a new column: median weight for each group
+    max_age = max(body_mass_g, na.rm = T)        # a new column: max weight for each group
   )
 ```
 
 - grouping can be applied across multiple columns
 
 ```{r}
-samples %>%
-  dplyr::group_by(material, sample_host) %>% # group by material and host
+peng %>%
+  dplyr::group_by(species, year) %>% # group by species and year
   dplyr::summarise(
-    n = dplyr::n(),  # a new column: number of samples for each group
+    n = dplyr::n(),  # a new column: number of penguins for each group
     .groups = "drop" # drop the grouping after this summary operation
   )
 ```
@@ -351,27 +353,28 @@ samples %>%
 - `dplyr` allows to `arrange` tibbles by one or multiple columns
 
 ```{r}
-samples %>% dplyr::arrange(publication_year)        # sort by publication year
-samples %>% dplyr::arrange(publication_year,
-                           sample_age)              # ... and sample age
-samples %>% dplyr::arrange(dplyr::desc(sample_age)) # sort descending on sample age
+peng %>% dplyr::arrange(sex)              # sort by sex
+peng %>% dplyr::arrange(sex, body_mass_g) # ... and weight
+peng %>% dplyr::arrange(dplyr::desc(body_mass_g)) # sort descendingly on weight
 ```
 
 - Sorting also works within groups and can be paired with `slice` to extract extreme values per group
 
 ```{r}
-samples %>%
-  dplyr::group_by(publication_year) %>%       # group by publication year
-  dplyr::arrange(dplyr::desc(sample_age)) %>% # sort by age within (!) groups
-  dplyr::slice_head(n = 2) %>%                # keep the first two samples per group
-  dplyr::ungroup()                            # remove the still lingering grouping
+peng %>%
+  dplyr::group_by(species) %>%                 # group by species
+  dplyr::arrange(dplyr::desc(body_mass_g)) %>% # sort by weight within (!) groups
+  dplyr::slice_head(n = 3) %>%                 # keep the first three samples per group
+  dplyr::ungroup()                             # remove the still lingering grouping
 ```
 
 - Slicing is also the relevant operation to take random samples from the observations in a tibble
 
 ```{r}
-samples %>% dplyr::slice_sample(n = 20)
+peng %>% dplyr::slice_sample(n = 10)
 ```
+
+
 
 ## Exercise 2
 
@@ -437,25 +440,25 @@ mtcars %>% dplyr::group_by(am) %>% dplyr::arrange(mpg) %>% dplyr::slice_head()
 - Columns in tibbles can be renamed with `dplyr::rename` and reordered with `dplyr::relocate`
 
 ```{r}
-samples %>% dplyr::rename(country = geo_loc_name) # rename a column
-samples %>% dplyr::relocate(site_name, .before = project_name) # reorder columns
+peng %>% dplyr::rename(penguin_name = id) # rename a column
+peng %>% dplyr::relocate(year, .before = species) # reorder columns
 ```
 
-- Values in columns can also be changed with `dplyr::recode`
+- Values in columns can be changed with `dplyr::recode`
 
 ```{r}
-samples$sample_host %>% dplyr::recode(`Homo sapiens` = "modern human")
+peng$island %>% dplyr::recode(Torgersen = "My favourite Island")
 ```
 
 - R supports explicitly ordinal data with `factor`s, which can be reordered as well
-- `factor`s can be handeld more easily with the `forcats` package
+- `factor`s can be handled more easily with the `forcats` package
 
 ```{r, fig.show='hide'}
-ggplot(samples) + geom_bar(aes(x = community_type)) # bars are alphabetically ordered
-sa2 <- samples
-sa2$cto <- forcats::fct_reorder(sa2$community_type, sa2$community_type, length)
+ggplot(peng) + geom_bar(aes(x = species)) # bars are alphabetically ordered
+peng2 <- peng
+peng2$species_ordered <- forcats::fct_reorder(peng2$species, peng2$species, length)
 # fct_reorder: reorder the input factor by a summary statistic on an other vector
-ggplot(sa2) + geom_bar(aes(x = community_type)) # bars are ordered by size
+ggplot(peng2) + geom_bar(aes(x = species_ordered)) # bars are ordered by size
 ```
 
 ## Adding columns to tibbles with `mutate` and `transmute`
@@ -463,26 +466,40 @@ ggplot(sa2) + geom_bar(aes(x = community_type)) # bars are ordered by size
 - A common application of data manipulation is adding derived columns. `dplyr` offers that with `mutate`
 
 ```{r}
-samples %>% 
-  dplyr::mutate(                                               # add a column that
-    archive_summary = paste0(archive, ": ", archive_accession) # combines two other
-  ) %$% archive_summary                                        # columns
+peng %>% 
+  dplyr::mutate(                    # add a column that
+    body_mass_kg = body_mass_g/1000 # manipulates an existing column
+  )
 ```
 
 - `dplyr::transmute` removes all columns but the newly created ones
 
 ```{r}
-samples %>% 
+peng %>% 
   dplyr::transmute(
-    sample_name = tolower(sample_name), # overwrite this columns
-    publication_doi                     # select this column
+    id = paste("Penguin Nr.", id), # overwrite this column
+    flipper_length_mm              # select this column
 )
+```
+
+- `dplyr::mutate` can also be combined with `dplyr::group_by` (instead of `dplyr::summarise`)
+
+```{r}
+peng %>% 
+  dplyr::group_by(species, sex, year) %>%
+  dplyr::mutate(                               # mutate does not collapse, unlike summarise
+    mean_weight = mean(body_mass_g, na.rm = T)
+  ) %>%
+  dplyr::arrange(body_mass_g)
 ```
 
 - `tibble::add_column` behaves as `dplyr::mutate`, but gives more control over column position
 
 ```{r}
-samples %>% tibble::add_column(., id = 1:nrow(.), .before = "project_name")
+peng %>% tibble::add_column(
+  flipper_length_cm = .$flipper_length_mm/10,
+  .after = "flipper_length_mm"
+)
 ```
 
 ## Conditional operations with `ifelse` and `case_when`
@@ -490,32 +507,32 @@ samples %>% tibble::add_column(., id = 1:nrow(.), .before = "project_name")
 - `ifelse` allows to implement conditional `mutate` operations, that consider information from other columns, but that gets cumbersome easily
 
 ```{r}
-samples %>% dplyr::mutate(hemi = ifelse(latitude >= 0, "North", "South")) %$% hemi
-```
-
-```{r}
-samples %>% dplyr::mutate(
-  hemi = ifelse(is.na(latitude), "unknown", ifelse(latitude >= 0, "North", "South"))
-) %$% hemi
-```
-
-- `dplyr::case_when` is a much more readable solution for this application
-
-```{r}
-samples %>% dplyr::mutate(
-  hemi = dplyr::case_when(
-    latitude >= 0 ~ "North",
-    latitude < 0  ~ "South",
-    TRUE          ~ "unknown" # TRUE catches all remaining cases
+peng %>% dplyr::mutate(
+  weight = ifelse(
+    test = body_mass_g >= 4200, # is weight below or above mean weight?
+    yes = "above mean",
+    no = "below mean"
   )
-) %$% hemi
+)
+```
+
+- `dplyr::case_when` is a more readable solution for this application
+
+```{r}
+peng %>% dplyr::mutate(
+  weight = dplyr::case_when(
+    body_mass_g >= 4200 ~ "above mean",
+    body_mass_g < 4200  ~ "below mean",
+    TRUE                ~ "unknown" # TRUE catches all remaining cases
+  )
+)
 ```
 
 ## Long and wide data formats
 
 - For different applications or to simplify certain analysis or plotting operations data often has to be transformed from a **wide** to a **long** format or vice versa
 
-![](figures/pivot_longer_wider.png){height=80px}
+![](figures/pivot_longer_wider.png){height=150px}
 
 - A table in **wide** format has N key columns and N value columns
 - A table in **long** format has N key columns, one descriptor column and one value column
@@ -528,10 +545,6 @@ carsales <- tibble::tribble(
   "BMW",  20,      25,      30,      45,
   "VW",   67,      40,     120,      55
 )
-```
-
-```{r, results="markup", echo=FALSE}
-carsales
 ```
 
 - Wide format becomes a problem, when the columns are semantically identical. This dataset is in wide format and we can not easily plot it
@@ -548,10 +561,6 @@ carsales_long <- carsales %>% tidyr::pivot_longer(
 )
 ```
 
-```{r, results="markup", echo=FALSE}
-carsales_long
-```
-
 ## Making a long dataset wide with `pivot_wider`
 
 ```{r}
@@ -562,12 +571,10 @@ carsales_wide <- carsales_long %>% tidyr::pivot_wider(
 )
 ```
 
-```{r, results="markup", echo=FALSE}
-carsales_wide
-```
-
 - Applications of wide datasets are adjacency matrices to represent graphs, covariance matrices or other pairwise statistics
 - When data gets big, then wide formats can be significantly more efficient (e.g. for spatial data)
+
+
 
 ## Exercise 3
 

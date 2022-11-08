@@ -85,10 +85,6 @@ peng <- readr::read_csv("data/penguins.csv")
 - The `tibble` is a "data frame", a tabular data structure with rows and columns
 - Unlike a simple array, each column can have another data type
 
-```{r results='markup'}
-print(peng, n = 3)
-```
-
 ## How to look at a `tibble`?
 
 ```{r, eval=FALSE}
@@ -97,6 +93,8 @@ str(peng)     # A structural overview of an object
 summary(peng) # A human-readable summary of an object
 View(peng)    # RStudio's interactive data browser
 ```
+
+
 
 # Plotting data in `tibble`s
 
@@ -122,13 +120,7 @@ ggplot(          # Every plot starts with a call to the ggplot() function
 ```
 
 - `geom_*`: data + geometry (bars) + statistical transformation (sum)
-
-## `ggplot2` features many geoms
-
-- RStudio shares helpful cheatsheets for the tidyverse and beyond: https://www.rstudio.com/resources/cheatsheets
-
-\centering
-![](figures/geom_cheatsheet.png){width=55%}
+- `ggplot2` features many geoms: A good overview is provided by [this cheatsheet](https://www.rstudio.com/resources/cheatsheets)
 
 ## `scale`s control the behaviour of visual elements
 
@@ -139,6 +131,8 @@ ggplot(peng) +
   geom_boxplot(aes(x = species, y = body_mass_g))
 ```
 
+- Let's assume we had some extreme outliers in this dataset
+
 ```{r}
 peng_out <- peng
 peng_out$body_mass_g[sample(1:nrow(peng_out), 10)] <- 15000 + 50000 * runif(10)
@@ -146,8 +140,8 @@ ggplot(peng_out) +
   geom_boxplot(aes(x = species, y = body_mass_g))
 ```
 
-- This is not well readable, because one extreme outlier dictate the scale
-- A 15kg penguin is a scary thought and we would probably remove this outlier, but let's assume that's a valid observation we want to include in the plot
+- This is not well readable, because the extreme outliers dictate the scale
+- A 15kg penguin is a scary thought and we would probably remove these outliers, but let's assume they are valid observation we want to include in the plot
 
 - To mitigate this issue we can change the **scale** of different visual elements - e.g. the y-axis
 
@@ -333,9 +327,9 @@ quantile(chinstraps$body_mass_g, probs = 0.75) # sample quantiles for the given 
 peng %>%
   dplyr::group_by(species) %>% # group the tibble by the material column
   dplyr::summarise(
-    min_age = min(body_mass_g, na.rm = T),       # a new column: min weight for each group
-    median_age = median(body_mass_g, na.rm = T), # a new column: median weight for each group
-    max_age = max(body_mass_g, na.rm = T)        # a new column: max weight for each group
+    min_age = min(body_mass_g),       # a new column: min weight for each group
+    median_age = median(body_mass_g), # a new column: median weight for each group
+    max_age = max(body_mass_g)        # a new column: max weight for each group
   )
 ```
 
@@ -487,9 +481,9 @@ peng %>%
 - `dplyr::mutate` can also be combined with `dplyr::group_by` (instead of `dplyr::summarise`)
 
 ```{r}
-peng %>% 
+peng %>%
   dplyr::group_by(species, sex, year) %>%
-  dplyr::mutate(                               # mutate does not collapse, unlike summarise
+  dplyr::mutate( # mutate does not collapse rows, unlike summarise
     mean_weight = mean(body_mass_g, na.rm = T)
   ) %>%
   dplyr::arrange(body_mass_g)
@@ -499,7 +493,7 @@ peng %>%
 
 ```{r}
 peng %>% tibble::add_column(
-  flipper_length_cm = .$flipper_length_mm/10,
+  flipper_length_cm = .$flipper_length_mm/10, # not the . representing the LHS of the pipe
   .after = "flipper_length_mm"
 )
 ```
@@ -518,14 +512,14 @@ peng %>% dplyr::mutate(
 )
 ```
 
-- `dplyr::case_when` is a more readable solution for this application
+- `dplyr::case_when` is more readable and scales much better for this application
 
 ```{r}
 peng %>% dplyr::mutate(
   weight = dplyr::case_when(
-    body_mass_g >= 4200 ~ "above mean",
+    body_mass_g >= 4200 ~ "above mean", # the number of conditions is arbitrary
     body_mass_g < 4200  ~ "below mean",
-    TRUE                ~ "unknown" # TRUE catches all remaining cases
+    TRUE                ~ "unknown"     # TRUE catches all remaining cases
   )
 )
 ```

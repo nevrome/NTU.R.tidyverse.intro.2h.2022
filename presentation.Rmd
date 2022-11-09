@@ -135,13 +135,13 @@ ggplot(peng) +
 
 ```{r}
 peng_out <- peng
-peng_out$body_mass_g[sample(1:nrow(peng_out), 10)] <- 15000 + 50000 * runif(10)
+peng_out$body_mass_g[sample(1:nrow(peng_out), 10)] <- 100000 + 100000 * runif(10)
 ggplot(peng_out) +
   geom_boxplot(aes(x = species, y = body_mass_g))
 ```
 
 - This is not well readable, because the extreme outliers dictate the scale
-- A 15kg penguin is a scary thought and we would probably remove these outliers, but let's assume they are valid observation we want to include in the plot
+- A 100kg penguin is a scary thought and we would probably remove these outliers, but let's assume they are valid observation we want to include in the plot
 
 - To mitigate this issue we can change the **scale** of different visual elements - e.g. the y-axis
 

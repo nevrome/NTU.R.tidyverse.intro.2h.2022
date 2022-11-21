@@ -124,7 +124,7 @@ ggplot(          # Every plot starts with a call to the ggplot() function
 
 ## `scale`s control the behaviour of visual elements
 
-- Another plot: Boxplots of sample age through time
+- Another plot: Boxplots of penguin weight through time
 
 ```{r}
 ggplot(peng) +
@@ -189,11 +189,7 @@ ggplot(peng) +
 
 ## Exercise 1
 
-1. Look at the `mtcars` dataset and read up on the meaning of its variables
-
-```{r}
-
-```
+1. Look at the `mtcars` dataset and read up on the meaning of its variables with the help operator `?`. `mtcars` is part of R and can be accessed simply by typing `mtcars` in the console.
 
 2. Visualize the relationship between *Gross horsepower* and *1/4 mile time*
 
@@ -290,7 +286,7 @@ peng %>%
 ```{r}
 peng %>%
   dplyr::filter(island == "Biscoe") %$%
-  species %>% # extract the sample_age column as a vector
+  species %>% # extract the species column as a vector
   unique()    # get the unique elements of said vector
 ```
 
@@ -313,7 +309,7 @@ median(chinstraps$body_mass_g) # median
 
 var(chinstraps$body_mass_g)    # variance
 sd(chinstraps$body_mass_g)     # standard deviation
-quantile(chinstraps$body_mass_g, probs = 0.75) # sample quantiles for the given probs
+quantile(chinstraps$body_mass_g, probs = 0.75) # weight quantiles for the given probs
 ```
 
 - many of these functions can ignore missing values with an option `na.rm = TRUE`
@@ -327,9 +323,9 @@ quantile(chinstraps$body_mass_g, probs = 0.75) # sample quantiles for the given 
 peng %>%
   dplyr::group_by(species) %>% # group the tibble by the material column
   dplyr::summarise(
-    min_age = min(body_mass_g),       # a new column: min weight for each group
-    median_age = median(body_mass_g), # a new column: median weight for each group
-    max_age = max(body_mass_g)        # a new column: max weight for each group
+    min_weight = min(body_mass_g),       # a new column: min weight for each group
+    median_weight = median(body_mass_g), # a new column: median weight for each group
+    max_weight = max(body_mass_g)        # a new column: max weight for each group
   )
 ```
 
@@ -360,7 +356,7 @@ peng %>% dplyr::arrange(dplyr::desc(body_mass_g)) # sort descendingly on weight
 peng %>%
   dplyr::group_by(species) %>%                 # group by species
   dplyr::arrange(dplyr::desc(body_mass_g)) %>% # sort by weight within (!) groups
-  dplyr::slice_head(n = 3) %>%                 # keep the first three samples per group
+  dplyr::slice_head(n = 3) %>%                 # keep the first three penguins per group
   dplyr::ungroup()                             # remove the still lingering grouping
 ```
 
